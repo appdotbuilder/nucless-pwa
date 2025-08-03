@@ -25,9 +25,13 @@ describe('loginUser', () => {
   afterEach(resetDB);
 
   it('should login user with valid credentials', async () => {
-    // Create test user first
+    // Create test user first with hashed password
+    const hashedPassword = await Bun.password.hash(testUser.password);
     await db.insert(usersTable)
-      .values(testUser)
+      .values({
+        ...testUser,
+        password: hashedPassword
+      })
       .execute();
 
     const result = await loginUser(testInput);
@@ -49,9 +53,13 @@ describe('loginUser', () => {
   });
 
   it('should throw error for invalid email', async () => {
-    // Create test user first
+    // Create test user first with hashed password
+    const hashedPassword = await Bun.password.hash(testUser.password);
     await db.insert(usersTable)
-      .values(testUser)
+      .values({
+        ...testUser,
+        password: hashedPassword
+      })
       .execute();
 
     const invalidInput: LoginUserInput = {
@@ -63,9 +71,13 @@ describe('loginUser', () => {
   });
 
   it('should throw error for invalid password', async () => {
-    // Create test user first
+    // Create test user first with hashed password
+    const hashedPassword = await Bun.password.hash(testUser.password);
     await db.insert(usersTable)
-      .values(testUser)
+      .values({
+        ...testUser,
+        password: hashedPassword
+      })
       .execute();
 
     const invalidInput: LoginUserInput = {
@@ -84,8 +96,12 @@ describe('loginUser', () => {
       role: 'admin' as const
     };
 
+    const hashedPassword = await Bun.password.hash(adminUser.password);
     await db.insert(usersTable)
-      .values(adminUser)
+      .values({
+        ...adminUser,
+        password: hashedPassword
+      })
       .execute();
 
     const adminInput: LoginUserInput = {
@@ -107,13 +123,40 @@ describe('loginUser', () => {
       phone: null
     };
 
+    const hashedPassword = await Bun.password.hash(userWithNullPhone.password);
     await db.insert(usersTable)
-      .values(userWithNullPhone)
+      .values({
+        ...userWithNullPhone,
+        password: hashedPassword
+      })
       .execute();
 
     const result = await loginUser(testInput);
 
     expect(result.user.phone).toBeNull();
     expect(result.token).toBeDefined();
+  });
+
+  it('should generate valid JWT token structure', async () => {
+    // Create test user first with hashed password
+    const hashedPassword = await Bun.password.hash(testUser.password);
+    await db.insert(usersTable)
+      .values({
+        ...testUser,
+        password: hashedPassword
+      })
+      .execute();
+
+    const result = await loginUser(testInput);
+
+    // Decode the base64 token to verify structure
+    const tokenData = JSON.parse(Buffer.from(result.token, 'base64').toString());
+
+    expect(tokenData.userId).toEqual(result.user.id);
+    expect(tokenData.email).toEqual('test@example.com');
+    expect(tokenData.role).toEqual('customer');
+    expect(tokenData.exp).toBeDefined();
+    expect(typeof tokenData.exp).toBe('number');
+    expect(tokenData.exp).toBeGreaterThan(Date.now());
   });
 });

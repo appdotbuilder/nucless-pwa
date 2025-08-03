@@ -18,13 +18,19 @@ export const loginUser = async (input: LoginUserInput): Promise<AuthResponse> =>
 
     const user = users[0];
 
-    // Verify password (in a real app, you'd use bcrypt.compare)
-    if (user.password !== input.password) {
+    // Verify password using Bun.password.verify
+    const isPasswordValid = await Bun.password.verify(input.password, user.password);
+    if (!isPasswordValid) {
       throw new Error('Invalid email or password');
     }
 
-    // Generate a simple JWT token (in a real app, you'd use proper JWT library)
-    const token = `jwt-${user.id}-${Date.now()}`;
+    // Generate JWT token (simple implementation - in production use proper JWT library)
+    const token = Buffer.from(JSON.stringify({ 
+      userId: user.id, 
+      email: user.email,
+      role: user.role,
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    })).toString('base64');
 
     return {
       user: {
