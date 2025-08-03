@@ -1,7 +1,20 @@
 
-export async function deleteProduct(id: number): Promise<void> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to delete a product (soft delete by setting is_active to false).
-    // Steps: 1) Validate admin permissions, 2) Set is_active to false, 3) Return success
-    return Promise.resolve();
-}
+import { db } from '../db';
+import { productsTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
+export const deleteProduct = async (id: number): Promise<void> => {
+  try {
+    // Soft delete by setting is_active to false
+    await db.update(productsTable)
+      .set({ 
+        is_active: false,
+        updated_at: new Date()
+      })
+      .where(eq(productsTable.id, id))
+      .execute();
+  } catch (error) {
+    console.error('Product deletion failed:', error);
+    throw error;
+  }
+};

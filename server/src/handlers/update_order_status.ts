@@ -1,20 +1,33 @@
 
+import { db } from '../db';
+import { ordersTable } from '../db/schema';
 import { type UpdateOrderStatusInput, type Order } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function updateOrderStatus(input: UpdateOrderStatusInput): Promise<Order> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to update order status (admin only).
-    // Steps: 1) Validate admin permissions, 2) Update order status, 3) Return updated order
-    return Promise.resolve({
-        id: input.id,
-        user_id: 1,
-        customer_name: 'Customer Name',
-        customer_phone: '08123456789',
-        customer_address: 'Customer Address',
-        notes: null,
-        total_amount: 30000,
+export const updateOrderStatus = async (input: UpdateOrderStatusInput): Promise<Order> => {
+  try {
+    // Update the order status
+    const result = await db.update(ordersTable)
+      .set({
         status: input.status,
-        created_at: new Date(),
         updated_at: new Date()
-    });
-}
+      })
+      .where(eq(ordersTable.id, input.id))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error(`Order with id ${input.id} not found`);
+    }
+
+    // Convert numeric fields back to numbers before returning
+    const order = result[0];
+    return {
+      ...order,
+      total_amount: parseFloat(order.total_amount)
+    };
+  } catch (error) {
+    console.error('Order status update failed:', error);
+    throw error;
+  }
+};

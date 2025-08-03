@@ -1,15 +1,30 @@
 
+import { db } from '../db';
+import { settingsTable } from '../db/schema';
 import { type Setting } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function getSetting(key: string): Promise<Setting | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to fetch a setting value by key.
-    // Steps: 1) Query setting by key, 2) Return setting or null if not found
-    return Promise.resolve({
-        id: 1,
-        key,
-        value: key === 'whatsapp_admin' ? '6281234567890' : 'default_value',
-        created_at: new Date(),
-        updated_at: new Date()
-    });
+  try {
+    const results = await db.select()
+      .from(settingsTable)
+      .where(eq(settingsTable.key, key))
+      .execute();
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    const setting = results[0];
+    return {
+      id: setting.id,
+      key: setting.key,
+      value: setting.value,
+      created_at: setting.created_at,
+      updated_at: setting.updated_at
+    };
+  } catch (error) {
+    console.error('Failed to get setting:', error);
+    throw error;
+  }
 }

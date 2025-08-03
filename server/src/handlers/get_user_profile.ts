@@ -1,18 +1,29 @@
 
+import { db } from '../db';
+import { usersTable } from '../db/schema';
 import { type User } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function getUserProfile(userId: number): Promise<User> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to fetch user profile information by user ID.
-    // Steps: 1) Query user from database by ID, 2) Remove password from response
-    return Promise.resolve({
-        id: userId,
-        email: 'user@example.com',
-        password: '', // Never return actual password
-        name: 'Placeholder User',
-        phone: null,
-        role: 'customer',
-        created_at: new Date(),
-        updated_at: new Date()
-    });
+  try {
+    const result = await db.select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error('User not found');
+    }
+
+    const user = result[0];
+    
+    // Return user profile without password for security
+    return {
+      ...user,
+      password: '' // Never return actual password
+    };
+  } catch (error) {
+    console.error('Get user profile failed:', error);
+    throw error;
+  }
 }

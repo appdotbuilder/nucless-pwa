@@ -1,15 +1,38 @@
 
+import { db } from '../db';
+import { settingsTable } from '../db/schema';
 import { type UpdateSettingInput, type Setting } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function updateSetting(input: UpdateSettingInput): Promise<Setting> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to update or create a setting (admin only).
-    // Steps: 1) Validate admin permissions, 2) Upsert setting, 3) Return updated setting
-    return Promise.resolve({
-        id: 1,
-        key: input.key,
+export const updateSetting = async (input: UpdateSettingInput): Promise<Setting> => {
+  try {
+    // Try to update existing setting first
+    const updateResult = await db.update(settingsTable)
+      .set({
         value: input.value,
-        created_at: new Date(),
         updated_at: new Date()
-    });
-}
+      })
+      .where(eq(settingsTable.key, input.key))
+      .returning()
+      .execute();
+
+    // If setting exists, return the updated record
+    if (updateResult.length > 0) {
+      return updateResult[0];
+    }
+
+    // If setting doesn't exist, create it (upsert behavior)
+    const insertResult = await db.insert(settingsTable)
+      .values({
+        key: input.key,
+        value: input.value
+      })
+      .returning()
+      .execute();
+
+    return insertResult[0];
+  } catch (error) {
+    console.error('Setting update failed:', error);
+    throw error;
+  }
+};
